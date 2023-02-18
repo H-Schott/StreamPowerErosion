@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.1)
 
-project(ArchesCodeReleaseTemplate)
+project(StreamPowerErosion)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,7 +40,7 @@ if(OPENMP_FOUND)
 endif()
 
 # ------------------------------------------------------------------------------
-set(DEMO ArchesCodeReleaseTemplate)
+set(DEMO StreamPowerErosion)
 set(SRC_DIR code)
 include_directories(${SRC_DIR})
 aux_source_directory(${SRC_DIR} SRC_FILES)
@@ -64,6 +64,7 @@ if (WIN32)
 		${SRC_DIR}/terrainwidget.h
 		${SRC_DIR}/stb_image.h
 		${SRC_DIR}/stb_image_write.h
+		${SRC_DIR}/spe_shader.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.cpp
 		${IMGUI_SRC_DIR}/backends/imgui_impl_opengl3.h
@@ -89,6 +90,7 @@ else()
 		${SRC_DIR}/terrainwidget.h
 		${SRC_DIR}/stb_image.h
 		${SRC_DIR}/stb_image_write.h
+		${SRC_DIR}/spe_shader.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.cpp
 		${IMGUI_SRC_DIR}/backends/imgui_impl_opengl3.h

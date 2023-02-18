@@ -7,6 +7,7 @@
 static Window* window;
 static TerrainRaytracingWidget* widget;
 static ScalarField2 hf;
+static ScalarField2 uplift;
 static Texture2D albedoTexture;
 static int shadingMode;
 static double brushRadius = 250.0;
@@ -98,10 +99,10 @@ static void GUI()
 				ResetCamera();
 
 			// Brushes
-			ImGui::InputDouble("Brush radius", &brushRadius);
+			/*ImGui::InputDouble("Brush radius", &brushRadius);
 			ImGui::InputDouble("Brush strength", &brushStrength);
 			ImGui::Separator();
-			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();*/
 		}
 		
 		// Simulation statistics
@@ -139,10 +140,11 @@ static void GUI()
 int main()
 {
 	// Init
-	window = new Window("Arches example app", 1920, 1080);
+	window = new Window("Stream Power Erosion", 1920, 1080);
 	widget = new TerrainRaytracingWidget();
 	window->SetWidget(widget);
 	hf = ScalarField2(Box2(Vector2::Null, 1000), 256, 256, 0.0);
+	uplift = ScalarField2(Box2(Vector2::Null, 1000), 256, 256, 0.0);
 	widget->SetHeightField(&hf);
 	window->SetUICallback(GUI);
 
@@ -159,7 +161,7 @@ int main()
 		bool leftMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_LEFT);
 		bool rightMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_RIGHT);
 		bool mouseOverGUI = window->MouseOverGUI();
-		if (!mouseOverGUI && (leftMouse || rightMouse) && window->GetKey(GLFW_KEY_LEFT_CONTROL))
+		/*if (!mouseOverGUI && (leftMouse || rightMouse) && window->GetKey(GLFW_KEY_LEFT_CONTROL))
 		{
 			Camera cam = widget->GetCamera();
 			double xpos, ypos;
@@ -171,7 +173,7 @@ int main()
 				hf.Gaussian(ray(t), brushRadius, leftMouse ? brushStrength : -brushStrength);
 				widget->UpdateInternal();
 			}
-		}
+		}*/
 
 		window->Update();
 	}
