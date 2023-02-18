@@ -65,14 +65,37 @@ void GPU_SPE::Init(const ScalarField2& hf) {
 
 void GPU_SPE::Step(int n) {
 
+	for (int i = 0; i < n; i++) {
+
+		glUseProgram(simulationShader);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bedrockBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, tempBedrockBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, streamBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, tempStreamBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, upliftBuffer);
+
+		glDispatchCompute(dispatchSize, dispatchSize, 1);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		// dual buffering
+		std::swap(bedrockBuffer, tempBedrockBuffer);
+		std::swap(streamBuffer, tempStreamBuffer);
+	}
+
+	glUseProgram(0);
 }
 
 void GPU_SPE::SetDt(float dt) const {
-
+	glUniform1f(glGetUniformLocation(simulationShader, "dt"), dt);
 }
 
 void GPU_SPE::SetUplift(const ScalarField2& uplift) const {
+	glUseProgram(simulationShader);
 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, upliftBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * uplift.VertexSize(), &uplift.GetFloatData()[0], GL_STREAM_READ);
+
+	glUseProgram(0);
 }
 
 GLuint GPU_SPE::GetData() const {

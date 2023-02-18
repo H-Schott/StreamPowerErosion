@@ -606,3 +606,9 @@ void ScalarField2::Save(const char* filename) const
     stbi_write_jpg(filename, nx, ny, 3, rawData, 98);
     delete[] rawData;
 }
+
+std::vector<float> ScalarField2::GetFloatData() const {
+    std::vector<float> res(nx * ny, 0);
+    for (int i = 0; i < nx * ny; i++) res[i] = float(field[i]);
+    return res;
+}
