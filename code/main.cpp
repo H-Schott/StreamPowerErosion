@@ -1,6 +1,7 @@
 #include "window.h"
 #include "terrainwidget.h"
 #include "scalarfield2.h"
+#include "spe_shader.h"
 #include "texture.h"
 #include <imgui.h>
 
@@ -8,6 +9,7 @@ static Window* window;
 static TerrainRaytracingWidget* widget;
 static ScalarField2 hf;
 static ScalarField2 uplift;
+static GPU_SPE gpu_spe;
 static Texture2D albedoTexture;
 static int shadingMode;
 static double brushRadius = 250.0;
@@ -109,6 +111,20 @@ static void GUI()
 		{
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Statistics");
 			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / float(ImGui::GetIO().Framerate), float(ImGui::GetIO().Framerate));
+		}
+	}
+	ImGui::End();
+
+	ImGui::Begin("Stream Power Erosion");
+	{
+		// Step Button
+		{
+			if (ImGui::Button("1000 Steps"))
+			{
+				gpu_spe.Step(1000);
+			}
+			ImGui::Separator();
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 		}
 	}
 	ImGui::End();

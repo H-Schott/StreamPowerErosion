@@ -35,6 +35,7 @@ public:
 
 	void SetUplift(const ScalarField2& uplift) const;
 	GLuint GetData() const;
+	void GetData(ScalarField2& sf);
 };
 
 #endif

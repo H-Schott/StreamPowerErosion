@@ -102,3 +102,10 @@ GLuint GPU_SPE::GetData() const {
 	return bedrockBuffer;
 }
 
+void GPU_SPE::GetData(ScalarField2& sf) {
+	glGetNamedBufferSubData(bedrockBuffer, 0, sizeof(float) * tmpData.size(), tmpData.data());
+
+	for (int i = 0; i < totalBufferSize; i++)
+		sf[i] = double(tmpData[i]);
+}
+
