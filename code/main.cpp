@@ -79,6 +79,7 @@ static void GUI()
 			{
 				hf = ScalarField2(Box2(Vector2::Null, 10000.0), "../data/heightfields/hfTest2.png", 0.0, 2500.0);
 				widget->SetHeightField(&hf);
+				gpu_spe.Init(hf);
 			}
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
@@ -121,7 +122,9 @@ static void GUI()
 		{
 			if (ImGui::Button("1000 Steps"))
 			{
-				gpu_spe.Step(1000);
+				gpu_spe.Step(100);
+				gpu_spe.GetData(hf);
+				widget->UpdateInternal();
 			}
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();

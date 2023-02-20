@@ -16,8 +16,8 @@ layout(binding = 4, std430) readonly buffer Uplift { float upliftBuffer[]; };
 
 uniform int nx;
 uniform int ny;
-uniform vec3 a;
-uniform vec3 b;
+uniform vec2 a;
+uniform vec2 b;
 uniform vec2 cellDiag;
 
 // 0: Stream power
@@ -64,7 +64,6 @@ vec4 Read(ivec2 p) {
 void Write(int id, vec4 data) {
     out_hf[id] = data.x;
     out_stream[id] = data.y;
-    out_stream_bis[id] = data.y;
 }
 
 float Slope(ivec2 p, ivec2 q) {
@@ -174,9 +173,10 @@ void main() {
     else if (erosionMode == 2)  // Stream power + Hillslope erosion (Laplacian) + Debris flow
         newH -= dt * (spe - k_h * Laplacian(p) - k_d * pslope);
     newH = max(newH, receiver.x);
-    newH += dt * uplift * data.z;
+    newH += dt * 0.1;//uplift;// * data.z;
 
     data.x = newH;
+    //data.x = pslope;
     Write(id, data);
 }
 

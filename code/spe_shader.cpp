@@ -25,7 +25,8 @@ void GPU_SPE::Init(const ScalarField2& hf) {
 		tmpData[i] = hf.at(i);
 
 	// Prepare shader & Init buffer - Just done once
-	std::string fullPath = "../Shaders/spe_shader.glsl";
+	//std::string fullPath = "../../data/shaders/spe_shader.glsl";
+	std::string fullPath = "D:/temp_files/StreamPowerErosion/data/shaders/spe_shader.glsl";
 
 	simulationShader = read_program(fullPath.c_str());
 
@@ -69,8 +70,8 @@ void GPU_SPE::Step(int n) {
 
 		glUseProgram(simulationShader);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, bedrockBuffer);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, tempBedrockBuffer);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, streamBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, streamBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, tempBedrockBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, tempStreamBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, upliftBuffer);
 
@@ -103,9 +104,13 @@ GLuint GPU_SPE::GetData() const {
 }
 
 void GPU_SPE::GetData(ScalarField2& sf) {
-	glGetNamedBufferSubData(bedrockBuffer, 0, sizeof(float) * tmpData.size(), tmpData.data());
+	glGetNamedBufferSubData(bedrockBuffer, 0, sizeof(float) * totalBufferSize, tmpData.data());
 
 	for (int i = 0; i < totalBufferSize; i++)
 		sf[i] = double(tmpData[i]);
+
+	double low, high;
+	sf.GetRange(low, high);
+	std::cout << low << " " << high << std::endl;
 }
 

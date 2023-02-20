@@ -1,3 +1,5 @@
+#pragma once
+
 #include "array2.h"
 
 class ScalarField2 : public Array2
@@ -94,6 +96,11 @@ inline double& ScalarField2::operator()(const Vec2I& q)
 inline double& ScalarField2::operator()(int i, int j)
 {
   return field[VertexIndex(i, j)];
+}
+
+inline double& ScalarField2::operator[](int i)
+{
+	return field[i];
 }
 
 /*!
