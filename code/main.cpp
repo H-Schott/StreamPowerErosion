@@ -13,8 +13,10 @@ static ScalarField2 gpu_drainage;
 static GPU_SPE gpu_spe;
 static Texture2D albedoTexture;
 static int shadingMode;
-static double brushRadius = 5000.0;
-static double brushStrength = 10.0;
+static float brushRadius = 30;
+static bool brushRadius_changed = false;
+static float brushStrength = 10.0;
+static bool brushStrength_changed = false;
 static bool ongoing_gpu_spe = false;
 static float delta_time = 100;
 static bool delta_time_changed = false;
@@ -121,19 +123,14 @@ static void GUI()
 				ResetCamera();
 
 			// Brushes
-			/*ImGui::InputDouble("Brush radius", &brushRadius);
-			ImGui::InputDouble("Brush strength", &brushStrength);*/
+			brushRadius, brushRadius_changed = ImGui::SliderFloat("radius", &brushRadius, 10, 100);
+			brushStrength, brushStrength_changed = ImGui::SliderFloat("strength", &brushStrength, 1, 30);
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 		}
 
 		{
-			/*if (ImGui::Button("1000 Steps")) {
-				gpu_spe.Step(1000);
-				gpu_spe.GetData(hf, gpu_drainage);
-				widget->UpdateInternal();
-			}*/
 			ImGui::Checkbox("Ongoing simulation", &ongoing_gpu_spe);
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
@@ -200,21 +197,20 @@ int main()
 	ResetCamera();
 
 	// Main loop
-	while (!window->Exit())
-	{
+	while (!window->Exit()) {
 		// Heightfield editing
 		bool leftMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_LEFT);
 		bool rightMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_RIGHT);
 		bool mouseOverGUI = window->MouseOverGUI();
-		if (!mouseOverGUI && (leftMouse || rightMouse) && window->GetKey(GLFW_KEY_LEFT_CONTROL)) {
+		if (!mouseOverGUI && (leftMouse) && window->GetKey(GLFW_KEY_LEFT_CONTROL)) {
 			Camera cam = widget->GetCamera();
 			double xpos, ypos;
 			glfwGetCursorPos(window->getPointer(), &xpos, &ypos);
 			Ray ray = cam.PixelToRay(int(xpos), int(ypos), window->width(), window->height());
 			double t;
 			if (PlaneIntersect(ray, t)) {
-				uplift.Gaussian(ray(t), brushRadius, brushStrength);
-				widget->UpdateInternal();
+				uplift.Gaussian(ray(t), brushRadius * 1000, brushStrength);
+				gpu_spe.SetUplift(uplift);
 			}
 		}
 		if (ongoing_gpu_spe) {
