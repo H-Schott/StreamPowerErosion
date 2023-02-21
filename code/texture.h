@@ -19,7 +19,12 @@ public:
     explicit inline Color8(unsigned char r, unsigned char g, unsigned char b, unsigned char a) : r(r), g(g), b(b), a(a)
     {
     }
+    static Color8 Lerp(const double& t, const Color8& a, const Color8& b);
 };
+
+inline Color8 Color8::Lerp(const double& t, const Color8& a, const Color8& b) {
+    return Color8((1.0 - t) * a.r + t * b.r, (1.0 - t) * a.g + t * b.g, (1.0 - t) * a.b + t * b.b, (1.0 - t) * a.a + t * b.a);
+}
 
 // CPU Texture
 class Texture2D : public Array2

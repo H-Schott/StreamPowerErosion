@@ -9,11 +9,15 @@ static Window* window;
 static TerrainRaytracingWidget* widget;
 static ScalarField2 hf;
 static ScalarField2 uplift;
+static ScalarField2 gpu_drainage;
 static GPU_SPE gpu_spe;
 static Texture2D albedoTexture;
 static int shadingMode;
 static double brushRadius = 250.0;
 static double brushStrength = 10.0;
+static bool ongoing_gpu_spe = false;
+static float delta_time = 100;
+static bool delta_time_changed = false;
 
 /*!
 \brief Compute the intersection between a plane and a ray.
@@ -69,17 +73,14 @@ static void GUI()
 		// Hardcoded examples
 		{
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Scenes");
-			if (ImGui::Button("Example 1"))
-			{
-				hf = ScalarField2(Box2(Vector2::Null, 30000.0), "../data/heightfields/hfTest1.png", 0.0, 2500.0);
-				widget->SetHeightField(&hf);
+			if (ImGui::Button("Uplift 1")) {
+				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/lambda.png", 1.0, 10.0);
+				gpu_spe.SetUplift(uplift);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("Example 2"))
-			{
-				hf = ScalarField2(Box2(Vector2::Null, 10000.0), "../data/heightfields/hfTest2.png", 0.0, 2500.0);
-				widget->SetHeightField(&hf);
-				gpu_spe.Init(hf);
+			if (ImGui::Button("Uplift 2")) {
+				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/alpes_noise.png", 1.0, 10.0);
+				gpu_spe.SetUplift(uplift);
 			}
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
@@ -90,7 +91,12 @@ static void GUI()
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Shading");
 			ImGui::RadioButton("Normal", &shadingMode, 0);
 			ImGui::RadioButton("Shaded", &shadingMode, 1);
-			widget->SetShadingMode(shadingMode);
+			ImGui::RadioButton("Uplift", &shadingMode, 2);
+			if (shadingMode == 2) {
+				Texture2D texture = uplift.CreateImage();
+				widget->SetAlbedo(texture);
+				widget->SetShadingMode(1);
+			} else widget->SetShadingMode(shadingMode);
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 		}
@@ -122,12 +128,20 @@ static void GUI()
 		{
 			if (ImGui::Button("1000 Steps"))
 			{
-				gpu_spe.Step(100);
-				gpu_spe.GetData(hf);
+				gpu_spe.Step(1000);
+				gpu_spe.GetData(hf, gpu_drainage);
 				widget->UpdateInternal();
 			}
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Checkbox("Ongoing simulation", &ongoing_gpu_spe);
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			delta_time, delta_time_changed = ImGui::SliderFloat("dt", &delta_time, 1, 100);
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
 		}
 	}
 	ImGui::End();
@@ -162,10 +176,15 @@ int main()
 	window = new Window("Stream Power Erosion", 1920, 1080);
 	widget = new TerrainRaytracingWidget();
 	window->SetWidget(widget);
-	hf = ScalarField2(Box2(Vector2::Null, 1000), 256, 256, 0.0);
-	uplift = ScalarField2(Box2(Vector2::Null, 1000), 256, 256, 0.0);
+	hf = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/heightfields/hfTest2.png", 0.0, 1000.0);
+	uplift = ScalarField2(Box2(Vector2::Null, 150*1000), 256, 256, 1.0);
 	widget->SetHeightField(&hf);
 	window->SetUICallback(GUI);
+
+	// gpu_spe init
+	gpu_spe.Init(hf);
+	gpu_spe.SetUplift(uplift);
+	gpu_drainage = hf;
 
 	albedoTexture = Texture2D(hf.GetSizeX(), hf.GetSizeY());
 	albedoTexture.Fill(Color8(225, 225, 225, 255));
@@ -193,6 +212,15 @@ int main()
 				widget->UpdateInternal();
 			}
 		}*/
+		if (ongoing_gpu_spe) {
+			// parameters changes
+			if (delta_time_changed) gpu_spe.SetDt(delta_time);
+
+			// simulation step
+			gpu_spe.Step(200);
+			gpu_spe.GetData(hf);
+			widget->UpdateInternal();
+		}
 
 		window->Update();
 	}

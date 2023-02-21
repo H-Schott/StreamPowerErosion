@@ -173,10 +173,9 @@ void main() {
     else if (erosionMode == 2)  // Stream power + Hillslope erosion (Laplacian) + Debris flow
         newH -= dt * (spe - k_h * Laplacian(p) - k_d * pslope);
     newH = max(newH, receiver.x);
-    newH += dt * 0.1;//uplift;// * data.z;
+    newH += dt * uplift * data.z;
 
     data.x = newH;
-    //data.x = pslope;
     Write(id, data);
 }
 
