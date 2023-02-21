@@ -123,6 +123,7 @@ static void GUI()
 				ResetCamera();
 
 			// Brushes
+			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "CTRL + Left Click to draw mountains");
 			brushRadius, brushRadius_changed = ImGui::SliderFloat("radius", &brushRadius, 10, 100);
 			brushStrength, brushStrength_changed = ImGui::SliderFloat("strength", &brushStrength, 1, 30);
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
@@ -150,7 +151,7 @@ static void GUI()
 	}
 	ImGui::End();
 
-	ImGui::Begin("Help panel");
+	/*ImGui::Begin("Help panel");
 	{
 		ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Controls");
 		ImGui::TextWrapped("Camera: left click + mouse movements, and scrolling for zoom.");
@@ -171,7 +172,7 @@ static void GUI()
 		ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Issues");
 		ImGui::TextWrapped("Contact me at axel(dot)paris69(at)gmail(dot)com, or report an issue on github.");
 	}
-	ImGui::End();
+	ImGui::End();*/
 }
 
 int main()
