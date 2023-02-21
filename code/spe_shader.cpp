@@ -27,8 +27,8 @@ void GPU_SPE::Init(const ScalarField2& hf) {
 	std::vector<float> tmpZeros(totalBufferSize, 0.);
 
 	// Prepare shader & Init buffer - Just done once
-	//std::string fullPath = "../../data/shaders/spe_shader.glsl";
-	std::string fullPath = "D:/temp_files/StreamPowerErosion/data/shaders/spe_shader.glsl";
+	std::string fullPath = "./data/shaders/spe_shader.glsl";
+	//std::string fullPath = "D:/temp_files/StreamPowerErosion/data/shaders/spe_shader.glsl";
 
 	simulationShader = read_program(fullPath.c_str());
 
