@@ -13,7 +13,7 @@ static ScalarField2 gpu_drainage;
 static GPU_SPE gpu_spe;
 static Texture2D albedoTexture;
 static int shadingMode;
-static double brushRadius = 250.0;
+static double brushRadius = 5000.0;
 static double brushStrength = 10.0;
 static bool ongoing_gpu_spe = false;
 static float delta_time = 100;
@@ -72,16 +72,22 @@ static void GUI()
 	{
 		// Hardcoded examples
 		{
-			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Scenes");
+			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Premade Uplifts");
+			if (ImGui::Button("Uplift 0")) {
+				uplift = ScalarField2(Box2(Vector2::Null, 150 * 1000), 256, 256, 0.2);
+				gpu_spe.SetUplift(uplift);
+			}
+			ImGui::SameLine();
 			if (ImGui::Button("Uplift 1")) {
-				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/lambda.png", 1.0, 10.0);
+				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/lambda.png", 0.4, 10.0);
 				gpu_spe.SetUplift(uplift);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Uplift 2")) {
-				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/alpes_noise.png", 1.0, 10.0);
+				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/alpes_noise.png", 0.4, 10.0);
 				gpu_spe.SetUplift(uplift);
 			}
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 		}
@@ -92,11 +98,18 @@ static void GUI()
 			ImGui::RadioButton("Normal", &shadingMode, 0);
 			ImGui::RadioButton("Shaded", &shadingMode, 1);
 			ImGui::RadioButton("Uplift", &shadingMode, 2);
-			if (shadingMode == 2) {
+			if (shadingMode == 1) {
+				Texture2D texture = Texture2D(hf.GetSizeX(), hf.GetSizeY());
+				texture.Fill(Color8(225, 225, 225, 255));
+				widget->SetAlbedo(texture);
+				widget->SetShadingMode(1);
+			}
+			else if (shadingMode == 2) {
 				Texture2D texture = uplift.CreateImage();
 				widget->SetAlbedo(texture);
 				widget->SetShadingMode(1);
 			} else widget->SetShadingMode(shadingMode);
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 		}
@@ -109,39 +122,33 @@ static void GUI()
 
 			// Brushes
 			/*ImGui::InputDouble("Brush radius", &brushRadius);
-			ImGui::InputDouble("Brush strength", &brushStrength);
+			ImGui::InputDouble("Brush strength", &brushStrength);*/
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
-			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();*/
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 		}
-		
-		// Simulation statistics
-		{
-			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Statistics");
-			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / float(ImGui::GetIO().Framerate), float(ImGui::GetIO().Framerate));
-		}
-	}
-	ImGui::End();
 
-	ImGui::Begin("Stream Power Erosion");
-	{
-		// Step Button
 		{
-			if (ImGui::Button("1000 Steps"))
-			{
+			/*if (ImGui::Button("1000 Steps")) {
 				gpu_spe.Step(1000);
 				gpu_spe.GetData(hf, gpu_drainage);
 				widget->UpdateInternal();
-			}
-			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
-			ImGui::Separator();
-			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			}*/
 			ImGui::Checkbox("Ongoing simulation", &ongoing_gpu_spe);
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 			delta_time, delta_time_changed = ImGui::SliderFloat("dt", &delta_time, 1, 100);
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 
+		}
+		
+		// Simulation statistics
+		{
+			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Statistics");
+			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / float(ImGui::GetIO().Framerate), float(ImGui::GetIO().Framerate));
 		}
 	}
 	ImGui::End();
@@ -199,19 +206,17 @@ int main()
 		bool leftMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_LEFT);
 		bool rightMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_RIGHT);
 		bool mouseOverGUI = window->MouseOverGUI();
-		/*if (!mouseOverGUI && (leftMouse || rightMouse) && window->GetKey(GLFW_KEY_LEFT_CONTROL))
-		{
+		if (!mouseOverGUI && (leftMouse || rightMouse) && window->GetKey(GLFW_KEY_LEFT_CONTROL)) {
 			Camera cam = widget->GetCamera();
 			double xpos, ypos;
 			glfwGetCursorPos(window->getPointer(), &xpos, &ypos);
 			Ray ray = cam.PixelToRay(int(xpos), int(ypos), window->width(), window->height());
 			double t;
-			if (PlaneIntersect(ray, t))
-			{
-				hf.Gaussian(ray(t), brushRadius, leftMouse ? brushStrength : -brushStrength);
+			if (PlaneIntersect(ray, t)) {
+				uplift.Gaussian(ray(t), brushRadius, brushStrength);
 				widget->UpdateInternal();
 			}
-		}*/
+		}
 		if (ongoing_gpu_spe) {
 			// parameters changes
 			if (delta_time_changed) gpu_spe.SetDt(delta_time);
