@@ -25,7 +25,7 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 # set path to dependencies
 add_definitions(-DGLEW_STATIC)
 add_subdirectory(dependency/glfw EXCLUDE_FROM_ALL)
-add_subdirectory(dependency/glew-cmake EXCLUDE_FROM_ALL)
+add_subdirectory(dependency/glew EXCLUDE_FROM_ALL)
 include_directories(dependency/imgui)
 
 # imgui source files
