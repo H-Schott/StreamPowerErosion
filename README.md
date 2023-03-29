@@ -15,5 +15,5 @@ Can be compile on Windows or Linux, using the CMake file.
 
 ## Control
 
-**ctrl + mouse wheel** to zoom in and out.
+**ctrl + mouse wheel** to zoom in and out.  
 **ctrl + left click** to add uplift and place mountains.
