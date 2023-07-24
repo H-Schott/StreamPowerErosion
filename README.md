@@ -12,7 +12,7 @@ To cite this code or the related article :
 author = {Schott, Hugo and Paris, Axel and Fournier, Lucie and Gu\'{e}rin, Eric and Galin, Eric},
 title = {Large-Scale Terrain Authoring through Interactive Erosion Simulation},
 year = {2023},
-journal = {ACM Trans. Graph.}
+journal = {ACM Transactions on Graphics}
 }
 ```
 
