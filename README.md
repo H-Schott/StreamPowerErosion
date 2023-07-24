@@ -8,17 +8,11 @@ The user paints an **uplift** map, which specifies the local elevation speed of 
 
 To cite this code or the related article :
 ```tex
-@unpublished{schott:hal-04049125,
-  TITLE = {{Large-scale terrain authoring through interactive erosion simulation}},
-  AUTHOR = {Schott, Hugo and Paris, Axel and Fournier, Lucie and Gu{\'e}rin, Eric and Galin, Eric},
-  URL = {https://hal.science/hal-04049125},
-  NOTE = {working paper or preprint},
-  YEAR = {2023},
-  MONTH = Mar,
-  KEYWORDS = {Erosion simulation ; Landscapes},
-  PDF = {https://hal.science/hal-04049125/file/2022-uplift-author.pdf},
-  HAL_ID = {hal-04049125},
-  HAL_VERSION = {v1},
+@article{Schott2023,
+author = {Schott, Hugo and Paris, Axel and Fournier, Lucie and Gu\'{e}rin, Eric and Galin, Eric},
+title = {Large-Scale Terrain Authoring through Interactive Erosion Simulation},
+year = {2023},
+journal = {ACM Trans. Graph.}
 }
 ```
 
