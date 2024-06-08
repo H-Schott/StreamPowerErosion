@@ -186,7 +186,7 @@ void TerrainRaytracingWidget::UpdateInternal()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, hf->GetSizeX(), hf->GetSizeY(), 0, GL_RED, GL_FLOAT, tmpData.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, hf->GetSizeX(), hf->GetSizeY(), 0, GL_RED, GL_FLOAT, tmpData.data());
 	glProgramUniform1i(shaderProgram, glGetUniformLocation(shaderProgram, "heightfield"), 0);
 	glUseProgram(0);
 }
