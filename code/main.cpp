@@ -9,7 +9,9 @@ static Window* window;
 static TerrainRaytracingWidget* widget;
 static ScalarField2 hf;
 static ScalarField2 uplift;
+static ScalarField2 noiseMap;
 static ScalarField2 gpu_drainage;
+static char noiseFilePath[512] = "../data/heightfields/hfTest2.png";
 static GPU_SPE gpu_spe;
 static Texture2D albedoTexture;
 static int shadingMode;
@@ -20,6 +22,8 @@ static bool brushStrength_changed = false;
 static bool ongoing_gpu_spe = false;
 static float delta_time = 100;
 static bool delta_time_changed = false;
+static int terrainResolution = 256;
+static bool resolution_changed = false;
 
 /*!
 \brief Compute the intersection between a plane and a ray.
@@ -76,17 +80,17 @@ static void GUI()
 		{
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Premade Uplifts");
 			if (ImGui::Button("Uplift 0")) {
-				uplift = ScalarField2(Box2(Vector2::Null, 150 * 1000), 256, 256, 0.2);
+				uplift = ScalarField2(hf.GetBox(), hf.GetSizeX(), hf.GetSizeY(), 0.2);
 				gpu_spe.SetUplift(uplift);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Uplift 1")) {
-				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/lambda.png", 0.4, 10.0);
+				uplift = ScalarField2(hf.GetBox(), "../data/uplifts/lambda.png", 0.4, 10.0).SetResolution(hf.GetSizeX(), hf.GetSizeY());
 				gpu_spe.SetUplift(uplift);
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Uplift 2")) {
-				uplift = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/uplifts/alpes_noise.png", 0.4, 10.0);
+				uplift = ScalarField2(hf.GetBox(), "../data/uplifts/alpes_noise.png", 0.4, 10.0).SetResolution(hf.GetSizeX(), hf.GetSizeY());
 				gpu_spe.SetUplift(uplift);
 			}
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
@@ -94,6 +98,24 @@ static void GUI()
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 		}
 		
+		// Noise map (erodibility)
+		{
+			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Noise Map (erodibility)");
+			ImGui::InputText("##noisepath", noiseFilePath, sizeof(noiseFilePath));
+			if (ImGui::Button("Load Noise")) {
+				noiseMap = ScalarField2(hf.GetBox(), noiseFilePath, 0., 1.).SetResolution(hf.GetSizeX(), hf.GetSizeY());
+				gpu_spe.SetNoise(noiseMap);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reset Noise")) {
+				noiseMap = ScalarField2(hf.GetBox(), hf.GetSizeX(), hf.GetSizeY(), 1.0);
+				gpu_spe.SetNoise(noiseMap);
+			}
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+		}
+
 		// Shading
 		{
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Shading");
@@ -143,6 +165,18 @@ static void GUI()
 
 		}
 		
+		// Terrain resolution
+		{
+			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Terrain Resolution");
+			ImGui::InputInt("Resolution", &terrainResolution, 64, 256);
+			terrainResolution = std::max(64, std::min(1024, terrainResolution));
+			if (ImGui::Button("Apply Resolution"))
+				resolution_changed = true;
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+		}
+
 		// Simulation statistics
 		{
 			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Statistics");
@@ -182,13 +216,16 @@ int main()
 	widget = new TerrainRaytracingWidget();
 	window->SetWidget(widget);
 	hf = ScalarField2(Box2(Vector2::Null, 150*1000), "../data/heightfields/hfTest2.png", 0.0, 1000.0);
-	uplift = ScalarField2(Box2(Vector2::Null, 150*1000), 256, 256, 1.0);
+	uplift = ScalarField2(hf.GetBox(), hf.GetSizeX(), hf.GetSizeY(), 1.0);
+	terrainResolution = hf.GetSizeX();
 	widget->SetHeightField(&hf);
 	window->SetUICallback(GUI);
 
 	// gpu_spe init
 	gpu_spe.Init(hf);
 	gpu_spe.SetUplift(uplift);
+	noiseMap = ScalarField2(hf.GetBox(), noiseFilePath, 0., 1.).SetResolution(hf.GetSizeX(), hf.GetSizeY());
+	gpu_spe.SetNoise(noiseMap);
 	gpu_drainage = hf;
 
 	albedoTexture = Texture2D(hf.GetSizeX(), hf.GetSizeY());
@@ -198,7 +235,32 @@ int main()
 	ResetCamera();
 
 	// Main loop
+	bool prevF5 = false;
 	while (!window->Exit()) {
+		// Shader hot-reload (F5)
+		bool f5 = window->GetKey(GLFW_KEY_F5);
+		if (f5 && !prevF5) {
+			gpu_spe.ReloadShader();
+			widget->ReloadShaders();
+		}
+		prevF5 = f5;
+
+		// Terrain resolution change
+		if (resolution_changed) {
+			Box2 box = hf.GetBox();
+			hf = ScalarField2(box, terrainResolution, terrainResolution, 0.0);
+			uplift = uplift.SetResolution(terrainResolution, terrainResolution);
+			noiseMap = ScalarField2(box, noiseFilePath, 0., 1.).SetResolution(terrainResolution, terrainResolution);
+			gpu_spe.Resize(hf);
+			gpu_spe.SetUplift(uplift);
+			gpu_spe.SetNoise(noiseMap);
+			widget->SetHeightField(&hf);
+			albedoTexture = Texture2D(terrainResolution, terrainResolution);
+			albedoTexture.Fill(Color8(225, 225, 225, 255));
+			widget->SetAlbedo(albedoTexture);
+			resolution_changed = false;
+		}
+
 		// Heightfield editing
 		bool leftMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_LEFT);
 		bool rightMouse = window->GetMousePressed(GLFW_MOUSE_BUTTON_RIGHT);

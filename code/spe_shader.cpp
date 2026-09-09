@@ -9,6 +9,7 @@ GPU_SPE::~GPU_SPE() {
 	glDeleteBuffers(1, &tempStreamBuffer);
 
 	glDeleteBuffers(1, &upliftBuffer);
+	glDeleteBuffers(1, &noiseBuffer);
 
 	release_program(simulationShader);
 }
@@ -27,8 +28,7 @@ void GPU_SPE::Init(const ScalarField2& hf) {
 	std::vector<float> tmpZeros(totalBufferSize, 0.);
 
 	// Prepare shader & Init buffer - Just done once
-	std::string fullPath = "./data/shaders/spe_shader.glsl";
-	//std::string fullPath = "D:/temp_files/StreamPowerErosion/data/shaders/spe_shader.glsl";
+	std::string fullPath = std::string(PATH_TO_SRC_DIRECTORY) + "data/shaders/spe_shader.glsl";
 
 	simulationShader = read_program(fullPath.c_str());
 
@@ -52,18 +52,75 @@ void GPU_SPE::Init(const ScalarField2& hf) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, upliftBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, &tmpZeros.front(), GL_STREAM_READ);
 
+	std::vector<float> tmpOnes(totalBufferSize, 1.f);
+	if (noiseBuffer == 0) glGenBuffers(1, &noiseBuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, noiseBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, &tmpOnes.front(), GL_STREAM_READ);
+
 	// Uniforms - just once
 	glUseProgram(simulationShader);
 
 	Box2 box = hf.Array2::GetBox();
 	Vector2 cellDiag = hf.CellDiagonal();
-	std::cout << float(cellDiag[0]) << " " << float(cellDiag[1]) << std::endl;
+	ax = float(box[0][0]); ay = float(box[0][1]);
+	bx = float(box[1][0]); by = float(box[1][1]);
+	cellDiagX = float(cellDiag[0]); cellDiagY = float(cellDiag[1]);
+	std::cout << cellDiagX << " " << cellDiagY << std::endl;
 	glUniform1i(glGetUniformLocation(simulationShader, "nx"), nx);
 	glUniform1i(glGetUniformLocation(simulationShader, "ny"), ny);
-	glUniform2f(glGetUniformLocation(simulationShader, "cellDiag"), float(cellDiag[0]), float(cellDiag[1]));
-	glUniform2f(glGetUniformLocation(simulationShader, "a"), float(box[0][0]), float(box[0][1]));
-	glUniform2f(glGetUniformLocation(simulationShader, "b"), float(box[1][0]), float(box[1][1]));
+	glUniform2f(glGetUniformLocation(simulationShader, "cellDiag"), cellDiagX, cellDiagY);
+	glUniform2f(glGetUniformLocation(simulationShader, "a"), ax, ay);
+	glUniform2f(glGetUniformLocation(simulationShader, "b"), bx, by);
 	
+	glUseProgram(0);
+}
+
+void GPU_SPE::ReloadShader() {
+	release_program(simulationShader);
+	simulationShader = read_program((std::string(PATH_TO_SRC_DIRECTORY) + "data/shaders/spe_shader.glsl").c_str());
+
+	glUseProgram(simulationShader);
+	glUniform1i(glGetUniformLocation(simulationShader, "nx"), nx);
+	glUniform1i(glGetUniformLocation(simulationShader, "ny"), ny);
+	glUniform2f(glGetUniformLocation(simulationShader, "cellDiag"), cellDiagX, cellDiagY);
+	glUniform2f(glGetUniformLocation(simulationShader, "a"), ax, ay);
+	glUniform2f(glGetUniformLocation(simulationShader, "b"), bx, by);
+	glUseProgram(0);
+}
+
+void GPU_SPE::Resize(const ScalarField2& hf) {
+	nx = hf.GetSizeX();
+	ny = hf.GetSizeY();
+	totalBufferSize = hf.VertexSize();
+	dispatchSize = (max(nx, ny) / 8) + 1;
+
+	tmpData.resize(totalBufferSize);
+	for (int i = 0; i < totalBufferSize; i++)
+		tmpData[i] = hf.at(i);
+
+	std::vector<float> tmpZeros(totalBufferSize, 0.f);
+	std::vector<float> tmpOnes(totalBufferSize, 1.f);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bedrockBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, tmpData.data(), GL_STREAM_READ);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempBedrockBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, tmpZeros.data(), GL_STREAM_READ);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, streamBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, tmpZeros.data(), GL_STREAM_READ);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, tempStreamBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, tmpZeros.data(), GL_STREAM_READ);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, upliftBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, tmpZeros.data(), GL_STREAM_READ);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, noiseBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * totalBufferSize, tmpOnes.data(), GL_STREAM_READ);
+
+	Vector2 cellDiag = hf.CellDiagonal();
+	cellDiagX = float(cellDiag[0]); cellDiagY = float(cellDiag[1]);
+
+	glUseProgram(simulationShader);
+	glUniform1i(glGetUniformLocation(simulationShader, "nx"), nx);
+	glUniform1i(glGetUniformLocation(simulationShader, "ny"), ny);
+	glUniform2f(glGetUniformLocation(simulationShader, "cellDiag"), cellDiagX, cellDiagY);
 	glUseProgram(0);
 }
 
@@ -77,6 +134,7 @@ void GPU_SPE::Step(int n) {
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, tempBedrockBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, tempStreamBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, upliftBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, noiseBuffer);
 
 		glDispatchCompute(dispatchSize, dispatchSize, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -96,12 +154,13 @@ void GPU_SPE::SetDt(float dt) const {
 }
 
 void GPU_SPE::SetUplift(const ScalarField2& uplift) const {
-	glUseProgram(simulationShader);
-
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, upliftBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * uplift.VertexSize(), &uplift.GetFloatData()[0], GL_STREAM_READ);
+}
 
-	glUseProgram(0);
+void GPU_SPE::SetNoise(const ScalarField2& noise) const {
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, noiseBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * noise.VertexSize(), &noise.GetFloatData()[0], GL_STREAM_READ);
 }
 
 GLuint GPU_SPE::GetData() const {

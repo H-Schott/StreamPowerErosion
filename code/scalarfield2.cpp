@@ -443,7 +443,7 @@ void ScalarField2::Gaussian(const Vector2& center, const double& radius, const d
             // Distance between central point and current point
             double u = SquaredNorm(center - ArrayVertex(x, y));
             if (u < radius * radius)
-                field[VertexIndex(x, y)] += height * Math::CubicSmooth(u, radius * radius);
+                field[VertexIndex(x, y)] = std::max(field[VertexIndex(x, y)], height * Math::CubicSmooth(u, radius * radius));
         }
     }
 }

@@ -11,6 +11,7 @@ layout(binding = 2, std430) writeonly buffer OutElevation { float out_hf[]; };
 layout(binding = 3, std430) writeonly buffer OutStreamArea { float out_stream[]; };
 
 layout(binding = 4, std430) readonly buffer Uplift { float upliftBuffer[]; };
+layout(binding = 5, std430) readonly buffer Noise  { float noiseBuffer[]; };
 
 
 
@@ -23,15 +24,16 @@ uniform vec2 cellDiag;
 // 0: Stream power
 // 1: Stream power + Hillslope (Laplacian)
 // 2: Stream power + Hillslope (Laplacian) + Debris slope
-uniform int erosionMode = 0;
+uniform int erosionMode = 1;
 
-uniform float uplift = 0.01f;
-uniform float k = 0.0005f;
-uniform float k_d = 10.0f;
-uniform float k_h = 2.0f;
-uniform float p_sa = 0.8f;
-uniform float p_sl = 2.0f;
-uniform float dt = 50.0f;
+uniform float uplift = 0.03;
+uniform float k = 0.0005;
+uniform float k_d = 10.0;
+uniform float k_h = 200.;
+uniform float p_sa = 0.8;
+uniform float p_sl = 2.0;
+uniform float dt = 50.0;
+uniform float p_flow = 1.;
 
 const ivec2 next8[8] = ivec2[8](ivec2(0, 1), ivec2(1, 1), ivec2(1, 0), ivec2(1, -1),
                                 ivec2(0, -1), ivec2(-1, -1), ivec2(-1, 0), ivec2(-1, 1));
@@ -118,6 +120,20 @@ ivec2 GetFlowSteepest(ivec2 p) {
     return d;
 }
 
+float GetFlowLpCoeff(ivec2 bot, ivec2 top) {
+
+    float s = Slope(bot, top);
+    if (s <= 0.) return 0.;
+
+    float slope_sum = 0.;
+    for (int i = 0; i < 8; i++) {
+        float ss = Slope(top + next8[i], top);
+        if (ss > 0.) slope_sum += pow(ss, p_flow);
+    }
+
+    return pow(s, p_flow) / slope_sum;
+}
+
 float WaterSteepest(ivec2 p) {
     float water = 0.0f;
     for (int i = 0; i < 8; i++) {
@@ -127,6 +143,16 @@ float WaterSteepest(ivec2 p) {
             water += Stream(q);
         }
     }
+    return water;
+}
+
+float WaterLp(ivec2 p) {
+    float water = 0.;
+    for (int i = 0; i < 8; i++) {
+        ivec2 q = p + next8[i];
+        water += Stream(q) * GetFlowLpCoeff(p, q);
+    }
+
     return water;
 }
 
@@ -153,7 +179,8 @@ void main() {
     }
 
     // Flows accumulation at p
-    float waterIncr = WaterSteepest(p);
+    //float waterIncr = WaterSteepest(p);
+    float waterIncr = WaterLp(p);
 
     data.y = 1.0f * length(cellDiag);
     data.y += waterIncr;
@@ -163,15 +190,20 @@ void main() {
     vec4 receiver = Read(p + d);
     float pslope = abs(Slope(p + d, p));
 
-    float spe = k * pow(data.y, p_sa) * pow(pslope, p_sl);
+    float kNoise = noiseBuffer[id];
+    float spe = k * kNoise * pow(data.y, p_sa) * pow(pslope, p_sl);
 
     float newH = data.x;
+    /*
+    */
+    float noiseFactor = 1. + 0.5 * (noiseBuffer[id] - 0.5);
+
     if (erosionMode == 0)       // Stream power
-        newH -= dt * (spe);
+        newH -= dt * (spe) * noiseFactor;
     else if (erosionMode == 1)  // Stream power + Hillslope erosion (Laplacian)
-        newH -= dt * (spe - k_h * Laplacian(p));
+        newH -= dt * (spe - k_h * Laplacian(p)) * noiseFactor;
     else if (erosionMode == 2)  // Stream power + Hillslope erosion (Laplacian) + Debris flow
-        newH -= dt * (spe - k_h * Laplacian(p) - k_d * pslope);
+        newH -= dt * (spe - k_h * Laplacian(p) - k_d * pslope) * noiseFactor;
     newH = max(newH, receiver.x);
     newH += dt * uplift * data.z;
 
