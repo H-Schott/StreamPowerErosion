@@ -7,6 +7,8 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+#include "write_16_png.h"
+
 /*!
 \class ScalarField2 scalarfield.h
 \brief A base two-dimensional field of real values.
@@ -609,18 +611,18 @@ void ScalarField2::Smooth()
 */
 void ScalarField2::Save(const char* filename) const
 {
-    ScalarField2 ff = *this;
-    ff.Normalize();
-    unsigned char* rawData = new unsigned char[ff.VertexSize() * 3];
-    for (int i = 0; i < ff.VertexSize(); i++)
-    {
-        double t = ff.at(i) * 255.0;
-        rawData[(i * 3) + 0] = (unsigned char)(int)t;
-        rawData[(i * 3) + 1] = (unsigned char)(int)t;
-        rawData[(i * 3) + 2] = (unsigned char)(int)t;
+    ScalarField2 f = *this;
+    f.Normalize();
+    std::vector<unsigned char> rawData (f.VertexSize() * 2, 0);
+    for (int i = 0; i < f.VertexSize(); i++) {
+        double d_val = f.at(i) * 65535.;
+        unsigned short us_val = static_cast<unsigned short>(d_val);
+
+        rawData[(i * 2) + 0] = (unsigned char)(us_val >> 8);
+        rawData[(i * 2) + 1] = (unsigned char)(us_val & 0xFF);
     }
-    stbi_write_jpg(filename, nx, ny, 3, rawData, 98);
-    delete[] rawData;
+
+    write_16_png(filename, rawData, nx, ny);
 }
 
 Texture2D ScalarField2::CreateImage() const {

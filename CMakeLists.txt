@@ -68,6 +68,8 @@ if (WIN32)
 		${SRC_DIR}/stb_image.h
 		${SRC_DIR}/stb_image_write.h
 		${SRC_DIR}/spe_shader.h
+		${SRC_DIR}/write_16_png.h
+		${SRC_DIR}/lodepng.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.cpp
 		${IMGUI_SRC_DIR}/backends/imgui_impl_opengl3.h
@@ -94,6 +96,8 @@ else()
 		${SRC_DIR}/stb_image.h
 		${SRC_DIR}/stb_image_write.h
 		${SRC_DIR}/spe_shader.h
+		${SRC_DIR}/write_16_png.h
+		${SRC_DIR}/lodepng.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.h
 		${IMGUI_SRC_DIR}/backends/imgui_impl_glfw.cpp
 		${IMGUI_SRC_DIR}/backends/imgui_impl_opengl3.h
